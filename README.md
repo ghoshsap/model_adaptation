@@ -1,4 +1,4 @@
-# Model Adaptation & Customization
+# Model Adaptation
 
 This workspace is a collection of reproducible scripts for adapting compact GPT-style language models using Hugging Face tooling:
 
