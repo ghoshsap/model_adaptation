@@ -129,24 +129,6 @@ python -m src.benchmark_generation \
 
 The script runs twice (cache on/off) and prints tokens/sec for each.
 
-### Paged attention demo
-
-`src/paged_attention.py` implements a simple paged KV cache for manual generation so you can play with cache length vs throughput:
-
-```bash
-python -m src.paged_attention \
-  --model_path distilgpt2 \
-  --adapter_path outputs/lora_tuned \
-  --prompt "Explain gravity to a kid:" \
-  --max_new_tokens 80 \
-  --page_size 64 \
-  --max_pages 6 \
-  --temperature 0.9 \
-  --repetition_penalty 1.1
-```
-
-The script prints the completion plus tokens/sec.
-
 ### Memory footprint
 
 `src/train.py` logs the number of trainable parameters plus an optional GPU memory snapshot before and after wrapping with LoRA/QLoRA. Capture these numbers to show how LoRA keeps quality with fewer params, while QLoRA slashes activation + optimizer memory by quantizing the base weights.
