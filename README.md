@@ -1,12 +1,13 @@
-# Small Language Model Playground
+# Model Adaptation & Customization
 
-This workspace provides reproducible scripts for experimenting with small language models using Hugging Face tooling:
+This workspace is a collection of reproducible scripts for adapting compact GPT-style language models using Hugging Face tooling:
 
 1. **Baseline fine-tuning** of `distilgpt2` on either TinyStories or WikiText-2.
 2. **LoRA (PEFT)** adaptation that reaches the same quality with far fewer trainable parameters.
 3. **4-bit QLoRA** training via `bitsandbytes` to reduce memory while keeping accuracy.
 4. **KV cache benchmarking** to demonstrate faster generation throughput when caching is enabled.
-5. **Simple serving endpoint** (FastAPI) that can load the baseline or adapter checkpoints. Optionally swap in vLLM if you have it installed.
+5. **Orthogonal butterfly adapters** (full-width and blockwise) so you can compare low-rank LoRA vs structured rotations.
+6. **Simple serving endpoint** (FastAPI) that can load the baseline or adapter checkpoints. Optionally swap in vLLM if you have it installed.
 
 > **Note**: The scripts are CPU-friendly for debugging but assume you can access a CUDA GPU for the LoRA/QLoRA experiments.
 
@@ -28,7 +29,7 @@ If you are working on macOS without an NVIDIA GPU you can still test the baselin
 Key arguments:
 
 - `--dataset {tinystories,wikitext2}` – pick a dataset (TinyStories defaults). TinyStories is downloaded from `roneneldan/TinyStories`. WikiText-2 uses `wikitext`,`wikitext-2-raw-v1`.
-- `--mode {baseline,lora,qlora}` – toggles how the model is prepared.
+- `--mode {baseline,lora,qlora,butterfly,butterfly_block}` – toggles how the model is prepared.
 - `--output_dir PATH` – where checkpoints, logs, and adapter weights land.
 - `--max_train_samples`/`--max_eval_samples` – optional caps for quick iterations.
 - `--lora_r`, `--lora_alpha`, `--lora_dropout`, `--target_modules` – PEFT knobs.
@@ -88,7 +89,29 @@ python -m src.train \
   --per_device_train_batch_size 4 \
   --learning_rate 1e-4 \
   --butterfly_stages 6 \
-  --target_modules c_attn c_proj
+  --target_modules c_attn c_proj \
+  --evaluation_strategy steps \
+  --eval_steps 250 \
+  --logging_steps 50
+```
+
+**Blockwise butterfly (three 256-dim subspaces):**
+```bash
+python -m src.train \
+  --dataset tinystories \
+  --mode butterfly_block \
+  --output_dir outputs/butterfly_block256 \
+  --max_train_samples 10000 \
+  --max_eval_samples 1000 \
+  --block_size 256 \
+  --per_device_train_batch_size 4 \
+  --learning_rate 1e-4 \
+  --butterfly_block_size 256 \
+  --butterfly_stages 8 \
+  --target_modules c_attn c_proj \
+  --evaluation_strategy steps \
+  --eval_steps 250 \
+  --logging_steps 50
 ```
 
 Logs show parameter counts, peak GPU memory (if CUDA), and evaluation perplexity so you can compare quality vs resource use.
@@ -187,6 +210,7 @@ curl -X POST http://localhost:8000/generate \
 slm/
 ├── README.md
 ├── requirements.txt
+├── scripts/               # Ready-to-run CLI wrappers (LoRA, butterfly, etc.)
 └── src/
     ├── __init__.py
     ├── benchmark_generation.py   # KV cache token/sec measurement
