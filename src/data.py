@@ -1,4 +1,4 @@
-"""Dataset helpers for TinyStories and WikiText-2."""
+"""Dataset helpers"""
 
 from __future__ import annotations
 
